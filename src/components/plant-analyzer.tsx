@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { ResultCard } from '@/components/result-card';
 import { identifyPlantSpecies, IdentifyPlantSpeciesOutput } from '@/ai/flows/identify-plant-species';
 import { detectPlantDisease, DetectPlantDiseaseOutput } from '@/ai/flows/detect-plant-disease';
 import { recommendTreatment, RecommendTreatmentOutput } from '@/ai/flows/recommend-treatment';
-import { Loader2, Sprout, HeartPulse, TestTube2, UploadCloud } from 'lucide-react';
+import { Loader2, Sprout, HeartPulse, TestTube2, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function PlantAnalyzer() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -19,41 +20,73 @@ export function PlantAnalyzer() {
   const [speciesResult, setSpeciesResult] = useState<IdentifyPlantSpeciesOutput | null>(null);
   const [diseaseResult, setDiseaseResult] = useState<DetectPlantDiseaseOutput | null>(null);
   const [treatmentResult, setTreatmentResult] = useState<RecommendTreatmentOutput | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 4 * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "Image too large",
-          description: "Please upload an image smaller than 4MB.",
-        });
-        return;
-      }
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
 
-      // Reset previous results
-      setSpeciesResult(null);
-      setDiseaseResult(null);
-      setTreatmentResult(null);
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setImageDataUri(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
+      }
+    };
+
+    getCameraPermission();
+    
+    return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
     }
+  }, [toast]);
+  
+
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        setImagePreview(dataUri);
+        setImageDataUri(dataUri);
+        setSpeciesResult(null);
+        setDiseaseResult(null);
+        setTreatmentResult(null);
+      }
+    }
+  };
+
+  const handleRetake = () => {
+    setImagePreview(null);
+    setImageDataUri(null);
   };
 
   const handleAnalyze = async () => {
     if (!imageDataUri) {
       toast({
         variant: "destructive",
-        title: "No image selected",
-        description: "Please upload an image of a plant to analyze.",
+        title: "No image captured",
+        description: "Please capture a photo of a plant to analyze.",
       });
       return;
     }
@@ -96,33 +129,45 @@ export function PlantAnalyzer() {
     <section className="space-y-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personal Plant Pathologist</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Upload a photo of your plant to identify it, diagnose diseases, and get treatment advice.</p>
+        <p className="mt-2 text-lg text-muted-foreground">Use your camera to identify plants, diagnose diseases, and get treatment advice.</p>
       </div>
 
       <Card>
         <CardContent className="p-6">
-          <div
-            className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
-            {imagePreview ? (
-              <div className="relative w-full max-w-md aspect-video">
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8">
+            <div className="relative w-full max-w-md aspect-video bg-black rounded-md">
+              <video ref={videoRef} className={`w-full h-full object-cover rounded-md ${imagePreview ? 'hidden' : 'block'}`} autoPlay muted playsInline />
+              {imagePreview && (
                 <Image src={imagePreview} alt="Plant preview" layout="fill" objectFit="contain" className="rounded-md" />
-              </div>
-            ) : (
-              <div className="text-center">
-                <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-sm text-muted-foreground">Click to upload or drag and drop</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 4MB</p>
-              </div>
-            )}
+              )}
+              {hasCameraPermission === false && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 rounded-md">
+                  <AlertTriangle className="h-10 w-10 text-destructive mb-2" />
+                  <p className="text-center font-semibold">Camera permission denied.</p>
+                  <p className="text-center text-sm">Please enable camera access in your browser settings.</p>
+                </div>
+              )}
+            </div>
+            <canvas ref={canvasRef} className="hidden"></canvas>
           </div>
-          <div className="mt-6 flex justify-center">
-            <Button onClick={handleAnalyze} disabled={loading || !imagePreview} size="lg">
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {loading ? 'Analyzing...' : 'Analyze Plant'}
-            </Button>
+          <div className="mt-6 flex justify-center gap-4">
+            {!imagePreview ? (
+              <Button onClick={handleCapture} disabled={hasCameraPermission !== true} size="lg">
+                <Camera className="mr-2 h-4 w-4" />
+                Capture Photo
+              </Button>
+            ) : (
+              <>
+                <Button onClick={handleRetake} variant="outline" size="lg">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retake
+                </Button>
+                <Button onClick={handleAnalyze} disabled={loading || !imagePreview} size="lg">
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {loading ? 'Analyzing...' : 'Analyze Plant'}
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
