@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "history-1",
+      "description": "A close up of a tomato plant leaf with some spots.",
+      "imageUrl": "https://images.unsplash.com/photo-1730220236935-9303f611e21d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx0b21hdG8lMjBwbGFudHxlbnwwfHx8fDE3NjM3MjcxMDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tomato plant"
+    },
+    {
+      "id": "history-2",
+      "description": "A rose bush with yellowing leaves.",
+      "imageUrl": "https://images.unsplash.com/photo-1652513710860-61970e3e5f69?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyb3NlJTIwYnVzaHxlbnwwfHx8fDE3NjM3NDQ0OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rose bush"
+    },
+    {
+      "id": "history-3",
+      "description": "A healthy succulent plant.",
+      "imageUrl": "https://images.unsplash.com/photo-1687878268833-ade6af5fa663?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzdWNjdWxlbnQlMjBwbGFudHxlbnwwfHx8fDE3NjM3MjcxMDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "succulent plant"
+    }
+  ]
 }
