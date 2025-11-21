@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { ResultCard } from '@/components/result-card';
 import { identifyPlantSpecies, IdentifyPlantSpeciesOutput } from '@/ai/flows/identify-plant-species';
 import { detectPlantDisease, DetectPlantDiseaseOutput } from '@/ai/flows/detect-plant-disease';
 import { recommendTreatment, RecommendTreatmentOutput } from '@/ai/flows/recommend-treatment';
-import { Loader2, Sprout, HeartPulse, TestTube2, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Sprout, HeartPulse, TestTube2, Camera, RefreshCw, AlertTriangle, SwitchCamera } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function PlantAnalyzer() {
@@ -21,32 +21,58 @@ export function PlantAnalyzer() {
   const [diseaseResult, setDiseaseResult] = useState<DetectPlantDiseaseOutput | null>(null);
   const [treatmentResult, setTreatmentResult] = useState<RecommendTreatmentOutput | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
+  const getCameraStream = useCallback(async (mode: 'environment' | 'user') => {
+    try {
+      // Stop any existing stream
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: mode } } });
+      setHasCameraPermission(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      // If the exact facing mode fails, try the other one.
+      if (mode === 'environment') {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            setHasCameraPermission(true);
+            setFacingMode('user');
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (e) {
+             setHasCameraPermission(false);
+             toast({
+                variant: 'destructive',
+                title: 'Camera Access Denied',
+                description: 'Please enable camera permissions in your browser settings to use this app.',
+             });
         }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
+      } else {
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.',
+          description: 'Could not access any camera. Please enable camera permissions.',
         });
       }
-    };
+    }
+  }, [toast]);
 
-    getCameraPermission();
+  useEffect(() => {
+    getCameraStream(facingMode);
     
     return () => {
         if (videoRef.current && videoRef.current.srcObject) {
@@ -54,7 +80,7 @@ export function PlantAnalyzer() {
             stream.getTracks().forEach(track => track.stop());
         }
     }
-  }, [toast]);
+  }, [facingMode, getCameraStream]);
   
 
   const handleCapture = () => {
@@ -79,6 +105,10 @@ export function PlantAnalyzer() {
   const handleRetake = () => {
     setImagePreview(null);
     setImageDataUri(null);
+  };
+
+  const handleSwitchCamera = () => {
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
   };
 
   const handleAnalyze = async () => {
@@ -146,6 +176,11 @@ export function PlantAnalyzer() {
                   <p className="text-center font-semibold">Camera permission denied.</p>
                   <p className="text-center text-sm">Please enable camera access in your browser settings.</p>
                 </div>
+              )}
+               {!imagePreview && hasCameraPermission && (
+                <Button onClick={handleSwitchCamera} variant="ghost" size="icon" className="absolute top-2 right-2 text-white bg-black/30 hover:bg-black/50 hover:text-white">
+                  <SwitchCamera className="h-5 w-5" />
+                </Button>
               )}
             </div>
             <canvas ref={canvasRef} className="hidden"></canvas>
