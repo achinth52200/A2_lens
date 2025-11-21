@@ -156,59 +156,55 @@ export function PlantAnalyzer() {
   };
 
   return (
-    <section className="space-y-8">
-      <div className="text-center">
+    <section className="space-y-8 py-8">
+      <div className="text-center container mx-auto px-4">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Your Personal Plant Pathologist</h1>
         <p className="mt-2 text-lg text-muted-foreground">Use your camera to identify plants, diagnose diseases, and get treatment advice.</p>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8">
-            <div className="relative w-full max-w-md aspect-video bg-black rounded-md">
-              <video ref={videoRef} className={`w-full h-full object-cover rounded-md ${imagePreview ? 'hidden' : 'block'}`} autoPlay muted playsInline />
-              {imagePreview && (
-                <Image src={imagePreview} alt="Plant preview" layout="fill" objectFit="contain" className="rounded-md" />
-              )}
-              {hasCameraPermission === false && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 rounded-md">
-                  <AlertTriangle className="h-10 w-10 text-destructive mb-2" />
-                  <p className="text-center font-semibold">Camera permission denied.</p>
-                  <p className="text-center text-sm">Please enable camera access in your browser settings.</p>
-                </div>
-              )}
-               {!imagePreview && hasCameraPermission && (
-                <Button onClick={handleSwitchCamera} variant="ghost" size="icon" className="absolute top-2 right-2 text-white bg-black/30 hover:bg-black/50 hover:text-white">
-                  <SwitchCamera className="h-5 w-5" />
-                </Button>
-              )}
+      <div className="w-full">
+        <div className="relative w-full aspect-video bg-black">
+          <video ref={videoRef} className={`w-full h-full object-cover ${imagePreview ? 'hidden' : 'block'}`} autoPlay muted playsInline />
+          {imagePreview && (
+            <Image src={imagePreview} alt="Plant preview" layout="fill" objectFit="contain" />
+          )}
+          {hasCameraPermission === false && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4">
+              <AlertTriangle className="h-10 w-10 text-destructive mb-2" />
+              <p className="text-center font-semibold">Camera permission denied.</p>
+              <p className="text-center text-sm">Please enable camera access in your browser settings.</p>
             </div>
-            <canvas ref={canvasRef} className="hidden"></canvas>
-          </div>
-          <div className="mt-6 flex justify-center gap-4">
-            {!imagePreview ? (
-              <Button onClick={handleCapture} disabled={hasCameraPermission !== true} size="lg">
-                <Camera className="mr-2 h-4 w-4" />
-                Capture Photo
-              </Button>
-            ) : (
-              <>
-                <Button onClick={handleRetake} variant="outline" size="lg">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Retake
-                </Button>
-                <Button onClick={handleAnalyze} disabled={loading || !imagePreview} size="lg">
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {loading ? 'Analyzing...' : 'Analyze Plant'}
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          )}
+           {!imagePreview && hasCameraPermission && (
+            <Button onClick={handleSwitchCamera} variant="ghost" size="icon" className="absolute top-4 right-4 text-white bg-black/30 hover:bg-black/50 hover:text-white z-10">
+              <SwitchCamera className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
+        <canvas ref={canvasRef} className="hidden"></canvas>
+      </div>
+      <div className="mt-6 flex justify-center gap-4">
+        {!imagePreview ? (
+          <Button onClick={handleCapture} disabled={hasCameraPermission !== true} size="lg">
+            <Camera className="mr-2 h-4 w-4" />
+            Capture Photo
+          </Button>
+        ) : (
+          <>
+            <Button onClick={handleRetake} variant="outline" size="lg">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retake
+            </Button>
+            <Button onClick={handleAnalyze} disabled={loading || !imagePreview} size="lg">
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? 'Analyzing...' : 'Analyze Plant'}
+            </Button>
+          </>
+        )}
+      </div>
 
       {(speciesResult || diseaseResult) && (
-        <div className="space-y-6">
+        <div className="space-y-6 container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center font-headline">Analysis Results</h2>
           <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
             {speciesResult && (
